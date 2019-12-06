@@ -1,0 +1,208 @@
+---
+title: "Untitled"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(dplyr)
+
+```
+
+# Fun with DAG's
+
+Motivation: Ever since reading through statistical rethinking (the book) I have been intrigues by the idea of DAG's. There are three main reasons why im a fan
+
+- it's a way to help yourself think about the assumptions your theory implies
+- it visualizes your theory based hypothesis 
+- offers you a way to think about statistical implications of your assumptions and test for possible confounders (pipes, forks, colliders, you name it)
+
+As always, there is not just 'a package for that', but multiple ones. Here I try out a couple and note what I like about them.
+
+
+## daggity {.tabset}
+
+I found it on the good old [R-Bloggers page](https://www.r-bloggers.com/causal-inference-with-dags-in-r/)
+
+comments:
+
++ cool name ;)
+- turn out, setting it up is complicated: V8 (a dependency) had a non-zero exit status. Further search bringt to light: last update was 2013...NEXT! Even further research shows, my first flimsy research was wrong, last update was in 2018 and apparently the package is still maintained. It's just my work computer that has problems with V8. At this point there are too many DAG packages waiting for me to delve into this any further. bye for now daggity...
+
+okay this was bugging me so I tried with another computer :) And it works like a charm
+
+### example code
+```{r}
+
+pacman::p_load("dagitty")
+# install_github("jtextor/dagitty/r")
+
+dag <- dagitty("dag {
+  X1 -> X2
+  X1 -> Y
+  X3 -> X2
+  X2 -> Y
+  X2 -> T -> Y
+  X3 -> T
+               }")
+plot( graphLayout( dag ) )
+```
+
+### my playground
+
+```{r}
+dag <- dagitty("dag {
+  Harsh_Environment -> Family_Status
+  Family_Status -> Child_Risk_Preference
+  }")
+
+plot( graphLayout( dag ) )
+```
+
+maybe shorter names
+```{r}
+dag <- dagitty("dag {
+  HE -> FST
+  FST -> CRP
+  }")
+
+plot( graphLayout( dag ) )
+```
+
+
+## diagramR {.tabset}
+
+[diagrammeR](http://rich-iannone.github.io/DiagrammeR/) was empfohlen to by by a colleague. Can't wait to check it out.
+
++ fancy website
++ github documentation [here](https://github.com/rich-iannone/DiagrammeR)
+
+```{r}
+pacman::p_load(DiagrammeR)
+```
+Installation worked fine :)
+
+lets start with the example code and then move on to what I am interested in
+
+### example code
+
+copied from the github documentary page. At first glance it looks quite long, but I guess the plot that comes out involves a lot of nodes and features.
+```{r}
+
+example_graph <-
+  create_graph() %>%
+  add_pa_graph(
+    n = 50,
+    m = 1,
+    set_seed = 23) %>%
+  add_gnp_graph(
+    n = 50,
+    p = 1/100,
+    set_seed = 23) %>%
+  join_node_attrs(
+    df = get_betweenness(.)) %>%
+  join_node_attrs(
+    df = get_degree_total(.)) %>%
+  colorize_node_attrs(
+    node_attr_from = total_degree,
+    node_attr_to = fillcolor,
+    palette = "Greens",
+    alpha = 90) %>%
+  rescale_node_attrs(
+    node_attr_from = betweenness,
+    to_lower_bound = 0.5,
+    to_upper_bound = 1.0,
+      node_attr_to = height) %>%
+  select_nodes_by_id(
+    nodes = get_articulation_points(.)) %>%
+  set_node_attrs_ws(
+    node_attr = peripheries,
+    value = 2) %>%
+  set_node_attrs_ws(
+    node_attr = penwidth,
+    value = 3) %>%
+  clear_selection() %>%
+  set_node_attr_to_display(
+    attr = NULL)
+```
+
+seems to work fine :)
+```{r}
+example_graph %>%
+  render_graph(layout = "nicely")
+```
+
+
+### my playground
+
+Now I want to try it out myself and I will start with a simple DAG that I can use in my next Article. 
+It will depict the Life History Theory and its implications for the relation between parental risk preferences, family status and children's risk preferences. 
+
+
+I am amazed by the beautiful [documentation](http://rich-iannone.github.io/DiagrammeR/graph_creation.html !!!
+
+Lets start with the Maternal Risk Preference (MRP) to Child Risk preference (CRP) Connection.
+
+I need Harsch Environment (HE), Family Status (FST) and Child Risk Preferences (CRP)
+```{r}
+create_graph(graph_name = "Life History Theors", directed = T) %>% 
+      add_node(label = "HE") %>%
+      add_node(label = "FST") %>%
+      add_node(label = "CRP") %>%
+      render_graph(layout = "nicely")
+      
+```
+
+lets add the directed edges
+```{r}
+create_graph(graph_name = "Life History Theors", directed = T) %>% 
+      add_node(label = "HE") %>%
+      add_node(label = "FST") %>%
+      add_node(label = "CRP") %>%
+      add_edge( from = 1, to = 2) %>% 
+      add_edge(from = 2, to = 3) %>% 
+      render_graph(layout = "nicely")
+```
+
+
+## ggdag {.tabset}
+
+well this sounds promising, since I am already familiar with ggplot!
+
+```{r}
+pacman::p_load(ggdag)
+
+theme_set(theme_dag())
+```
+
+### example code
+lets start
+```{r}
+dagify(y ~ x) %>% 
+  ggdag()
+```
+
+### playground
+
+Life History Theory
+```{r}
+dagify(CRP ~ FST,
+       FST ~ HE) %>% 
+  ggdag()
+```
+
+
+Genetics
+```{r}
+dagify(CRP ~ FST,
+       FST ~ HE) %>% 
+  ggdag()
+```
+
+Social Learning
+```{r}
+dagify(CRP ~ FST,
+       FST ~ HE) %>% 
+  ggdag()
+```
